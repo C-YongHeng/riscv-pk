@@ -64,6 +64,8 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
   size_t stack_top = current.stack_top - current.phdr_size;
   memcpy((void*)stack_top, (void*)current.phdr, current.phdr_size);
   current.phdr = stack_top;
+  printk("DBG: Copy elf to 0x%lx\n", stack_top);
+
 
   // copy argv to user stack
   for (size_t i = 0; i < argc; i++) {
@@ -138,6 +140,7 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
   init_tf(&tf, current.entry, stack_top);
   __clear_cache(0, 0);
   write_csr(sscratch, kstack_top);
+  printk("DBG:\tpc = 0x%lx  sp = 0x%lx\n", tf.epc, tf.gpr[2]);
   start_user(&tf);
 }
 

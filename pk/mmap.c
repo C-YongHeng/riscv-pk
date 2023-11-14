@@ -227,6 +227,7 @@ static void __do_munmap(uintptr_t addr, size_t len)
 
 uintptr_t __do_mmap(uintptr_t addr, size_t length, int prot, int flags, file_t* f, off_t offset)
 {
+   printk("%s start addr = %x\n", __func__, addr);
   size_t npage = (length-1)/RISCV_PGSIZE+1;
   if (flags & MAP_FIXED)
   {
@@ -237,6 +238,8 @@ uintptr_t __do_mmap(uintptr_t addr, size_t length, int prot, int flags, file_t* 
     return (uintptr_t)-1;
 
   vmr_t* v = __vmr_alloc(addr, length, f, offset, npage, prot);
+  
+  printk("v = %x\n", v);
   if (!v)
     return (uintptr_t)-1;
 
@@ -254,6 +257,8 @@ uintptr_t __do_mmap(uintptr_t addr, size_t length, int prot, int flags, file_t* 
   if (!demand_paging || (flags & MAP_POPULATE))
     for (uintptr_t a = addr; a < addr + length; a += RISCV_PGSIZE)
       kassert(__handle_page_fault(a, prot) == 0);
+
+   printk("%s end addr = 0x%x\n", __func__, addr);
 
   return addr;
 }
@@ -408,6 +413,8 @@ uintptr_t pk_vm_init()
     MIN(DRAM_BASE, mem_size - (first_free_paddr - DRAM_BASE));
 
   size_t stack_size = MIN(mem_pages >> 5, 2048) * RISCV_PGSIZE;
+  printk("DBG:Stack info: stack_bottom phy = 0x%lx  size = 0x%lx\n", current.mmap_max - stack_size, stack_size);
+
   size_t stack_bottom = __do_mmap(current.mmap_max - stack_size, stack_size, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, 0, 0);
   kassert(stack_bottom != (uintptr_t)-1);
   current.stack_top = stack_bottom + stack_size;

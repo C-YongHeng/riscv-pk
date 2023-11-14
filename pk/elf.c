@@ -50,6 +50,7 @@ void load_elf(const char* fn, elf_info* info)
   if (phdr_size > info->phdr_size)
     goto fail;
   ssize_t ret = file_pread(file, (void*)info->phdr, phdr_size, eh.e_phoff);
+  printk("phdr = %x\n", va2pa(info->phdr));
   if (ret < (ssize_t)phdr_size)
     goto fail;
   info->phnum = eh.e_phnum;
@@ -63,17 +64,21 @@ void load_elf(const char* fn, elf_info* info)
       max_vaddr = MAX(max_vaddr, ph[i].p_vaddr + ph[i].p_memsz);
   max_vaddr = ROUNDUP(max_vaddr, RISCV_PGSIZE);
 
+
   // don't load dynamic linker at 0, else we can't catch NULL pointer derefs
   uintptr_t bias = 0;
   if (eh.e_type == ET_DYN)
     bias = RISCV_PGSIZE;
 
   info->entry = eh.e_entry + bias;
+  printk("DBG:Get entry VA 0x%lx\n", info->entry);
+  printk("DBG:Get entry PA 0x%lx\n", va2pa(info->entry));
   int flags = MAP_FIXED | MAP_PRIVATE;
   for (int i = eh.e_phnum - 1; i >= 0; i--) {
     if(ph[i].p_type == PT_LOAD && ph[i].p_memsz) {
       uintptr_t prepad = ph[i].p_vaddr % RISCV_PGSIZE;
       uintptr_t vaddr = ph[i].p_vaddr + bias;
+      printk("<0>""vaddr = %x\n", vaddr);
       if (vaddr + ph[i].p_memsz > info->brk_min)
         info->brk_min = vaddr + ph[i].p_memsz;
       int flags2 = flags | (prepad ? MAP_POPULATE : 0);
